@@ -33,7 +33,7 @@ class BossDBDataset(Dataset):
             task_config:        The JSON config file with the required task configurations.
             boss_config:        The config file to pass to the array() method from intern library.
             mode:               Can be set to "train", "test" or "val" to indicate which set to make available.
-            image_transform:    The transform specified will be applied on the downloaded slices/volumes before it is returned.
+            image_transform:    The transform specified will be applied on the downloaded slices before it is returned.
             mask_transform:     The transform to apply to the annotations.
             retries:            The number of times to retry if the connection attempt to BossDB fails.
             download:           If set to 'True', pre-downlaoded data will be used, else if it's not available, the data will be downloaded & saved.
