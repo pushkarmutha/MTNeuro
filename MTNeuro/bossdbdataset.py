@@ -12,7 +12,9 @@ from os.path import exists
 from requests.exceptions import HTTPError
 
 class BossDBDataset(Dataset):
-
+    """
+    Downloads the data from BossDB using array() method from intern library. Further the objects of this class can be used to access the downloaded data slices/volumes by index.
+    """
     def __init__(
         self, 
         task_config: dict,
@@ -24,18 +26,40 @@ class BossDBDataset(Dataset):
         download = True,
         download_path = './'
     ):
+        """
+        Downloads the data, calculates the centroids and initializes the necessary variables.
+        
+        Args:
+            task_config:        The JSON config file with the required task configurations.
+            boss_config:        The config file to pass to the array() method from intern library.
+            mode:               Can be set to "train", "test" or "val" to indicate which set to make available.
+            image_transform:    The transform specified will be applied on the downloaded slices before it is returned.
+            mask_transform:     The transform to apply to the annotations.
+            retries:            The number of times to retry if the connection attempt to BossDB fails.
+            download:           If set to 'True', pre-downlaoded data will be used, else if it's not available, the data will be downloaded & saved.
+            download_path:      The location to download the data to / access it from.
+
+        Returns:
+            -
+        """
+        #Calculate the centroids for the slices along x and y for the cortex region. 
         x_cor = np.arange(task_config["tile_size"][0]/2, task_config["xrange_cor"][1]-task_config["xrange_cor"][0] ,task_config["tile_size"][0])
         y_cor = np.arange(task_config["tile_size"][1]/2, task_config["yrange_cor"][1]-task_config["yrange_cor"][0] ,task_config["tile_size"][1])
 
+        #Calculate the centroids for the slices along x and y for the striatum region. 
         x_stri = np.arange(task_config["tile_size"][0]/2, task_config["xrange_stri"][1]-task_config["xrange_stri"][0] ,task_config["tile_size"][0])
         y_stri = np.arange(task_config["tile_size"][1]/2, task_config["yrange_stri"][1]-task_config["yrange_stri"][0] ,task_config["tile_size"][1])
 
+        #Calculate the centroids for the slices along x and y for the VP region.
         x_vp = np.arange(task_config["tile_size"][0]/2, task_config["xrange_vp"][1]-task_config["xrange_vp"][0] ,task_config["tile_size"][0])
         y_vp = np.arange(task_config["tile_size"][1]/2, task_config["yrange_vp"][1]-task_config["yrange_vp"][0] ,task_config["tile_size"][1])
 
+        #Calculate the centroids for the slices along x and y for the ZI region.
         x_zi = np.arange(task_config["tile_size"][0]/2, task_config["xrange_zi"][1]-task_config["xrange_zi"][0] ,task_config["tile_size"][0])
         y_zi = np.arange(task_config["tile_size"][1]/2, task_config["yrange_zi"][1]-task_config["yrange_zi"][0] ,task_config["tile_size"][1])
 
+
+        #Fetch the z ranges for train test and valiation sets (they are stacked on top of each other along the Z direction).
         if mode == "train":
             z_vals = task_config["z_train"]
         elif mode == "val":
@@ -43,21 +67,25 @@ class BossDBDataset(Dataset):
         elif mode == "test":
             z_vals = task_config["z_test"]
             
+        #If specified to use pre-downloaded data and if it exists, use it.
         if download and exists(download_path+task_config['name']+mode+'images.npy'):
             image_array = np.load(download_path+task_config['name']+mode+'images.npy')
             mask_array = np.load(download_path+task_config['name']+mode+'labels.npy')
             self.image_array = image_array
             self.mask_array = mask_array
+        #If not specified to use pre-downloaded data or if pre-downloaded data doesn't exist.
         else:
             self.config = boss_config
 
             reset_counter = 0
             
+            #Connect to BossDB using array method from intern library and download data, retry if it fails.
             while reset_counter<retries:
                 try:
                     print('Downloading BossDB cutout...')
                     self.boss_image_array = array(task_config["image_chan"], boss_config=boss_config)
                     self.boss_mask_array = array(task_config["annotation_chan"], boss_config=boss_config)
+                    #Use the x, y and z ranges to select the appropriate set of slices and their annotations for each region.
                     #cortex
                     image_array =  self.boss_image_array[
                             z_vals[0] : z_vals[1],
@@ -80,6 +108,7 @@ class BossDBDataset(Dataset):
                             task_config["yrange_stri"][0] : task_config["yrange_stri"][1],
                             task_config["xrange_stri"][0] : task_config["xrange_stri"][1],
                         ]
+                    #concatenate the striatum slices on top of cortex slices.
                     image_array = np.concatenate((image_array,image_array_temp))
                     mask_array = np.concatenate((mask_array,mask_array_temp))
                     #vp
@@ -93,6 +122,7 @@ class BossDBDataset(Dataset):
                             task_config["yrange_vp"][0] : task_config["yrange_vp"][1],
                             task_config["xrange_vp"][0] : task_config["xrange_vp"][1],
                         ]
+                    #concatenate the VP slices on top of the previous set ending with striatum. 
                     image_array = np.concatenate((image_array,image_array_temp))
                     mask_array = np.concatenate((mask_array,mask_array_temp))
                     #zi
@@ -106,22 +136,27 @@ class BossDBDataset(Dataset):
                             task_config["yrange_zi"][0] : task_config["yrange_zi"][1],
                             task_config["xrange_zi"][0] : task_config["xrange_zi"][1],
                         ]
+                    #concatenate the ZI slices on top of the previous set ending with VP.
                     image_array = np.concatenate((image_array,image_array_temp))
                     mask_array = np.concatenate((mask_array,mask_array_temp))
                     self.image_array = image_array
                     self.mask_array = mask_array
+                    #If 'download' is specified, save the downloaded data as '.npy' file.
                     if download:
                         np.save(download_path+task_config['name']+mode+'images.npy', image_array)
                         np.save(download_path+task_config['name']+mode+'labels.npy', mask_array)
                     break
+                #In case the connection to BossDB fails
                 except HTTPError as e:
                     print('Error connecting to BossDB channels, retrying')
                     print(e)
                     reset_counter = reset_counter + 1
 
         #note- for X and Y, this is the centroid, for the z dimension the cutout is handled differently
-        #z is the start of the volume, and the volume extends to z+task_config["volume_z"]
+        #z is the start of the volume, and the volume extends to z+task_config["volume_z"]. Size of a volume -> task_config["volume_z"]
+        #Each region is stacked on top of each other along Z in the order -> Cortex, Striatum, VP, ZI.
         centroids = []
+        #collect all x and y centroids for train set.
         if mode == "train":
             #cortex
             z_vals = np.arange(0,task_config["z_train"][1]-task_config["z_train"][0] ,task_config["volume_z"])
@@ -144,6 +179,7 @@ class BossDBDataset(Dataset):
                     for y in y_vp:
                         centroids.append([z, y, x])
 
+            #If it specified as 4 class setting in task config then dont collect the centroids for ZI.
             if 'noZI' in task_config and bool(task_config['noZI']):
                 pass
             else:
@@ -154,7 +190,8 @@ class BossDBDataset(Dataset):
                     for x in x_zi:
                         for y in y_zi:
                             centroids.append([z, y, x])
-
+        
+        #Collect all x and y centroids for the val set.
         if mode == "val":
             z_vals = np.arange(0,task_config["z_val"][1]-task_config["z_val"][0] ,task_config["volume_z"])
             for z in z_vals:
@@ -172,6 +209,7 @@ class BossDBDataset(Dataset):
                     for y in y_cor:
                         centroids.append([z, y, x])
              
+            #If it specified as 4 class setting in the task config then dont collect the centroids for ZI.
             if 'noZI' in task_config and bool(task_config['noZI']):
                 pass
             else:
@@ -198,7 +236,7 @@ class BossDBDataset(Dataset):
                 for x in x_cor:
                     for y in y_cor:
                         centroids.append([z, y, x])
-            
+            #If it specified as 4 class setting in the task config then dont collect the centroids for ZI.             
             if 'noZI' in task_config and bool(task_config['noZI']):
                 pass
             else:
@@ -208,7 +246,7 @@ class BossDBDataset(Dataset):
                     for x in x_cor:
                         for y in y_cor:
                             centroids.append([z, y, x])
-
+        #List of slices
         self.centroid_list = centroids
         rad_y = int(task_config["tile_size"][1]/2)
         rad_x = int(task_config["tile_size"][0]/2)
@@ -221,8 +259,18 @@ class BossDBDataset(Dataset):
             self.combine_ax_and_bg = 1
         else:
             self.combine_ax_and_bg = 0
+        #checking if the task specified is task1.
         self.task1 = True if task_config["name"] == 'task1' else False
+
     def _get_img_label(self, mask):
+        """
+        Processes the annotations for Task 1.
+
+        Args: 
+            mask:  The orginial annotations.
+        Returns:
+            label: Image labels processed for Task 1.
+        """
         roi_label = torch.mode(mask.flatten())[0]
         if roi_label == 1 or roi_label == 0:
             img_label = 0
@@ -235,11 +283,24 @@ class BossDBDataset(Dataset):
         label = torch.LongTensor(0)
         label = img_label
         return label
+
     def __getitem__(self, key):
+        """
+        Get the a specific slice/volume by index.
+
+        Args:
+            key:                    Slice/volume number to pick from the set.
+        Return:
+            image_array:            The slice/volume that was specified.
+            mask_array:             The annotation corresponding to the slice/volume specified.
+            threeclass_mask_array:  The annotation corresponding to the slice/volume specified, for the 3-class setting.
+        """
         z, y, x = self.centroid_list[key]
         z = int(z)
         y = int(y)
         x = int(x)
+
+        #Pick the slice/volume and annotation corresponding specified from the data.
         image_array =  self.image_array[
                 z : z + self.z_size,
                 y - self.px_radius_y : y + self.px_radius_y,
@@ -250,23 +311,28 @@ class BossDBDataset(Dataset):
                 y - self.px_radius_y : y + self.px_radius_y,
                 x - self.px_radius_x : x + self.px_radius_x,
             ]
-        
+       
+        #If some transform has been specified
         if self.image_transform:
             image_array = self.image_transform(image_array)
+        #If some mask transform has been specified
         if self.mask_transform:
             mask_array = self.mask_transform(mask_array.astype('int64'))
             mask_array = torch.squeeze(mask_array)
+        #If it's 3D volumes instead of slices
         if self.z_size>1:
             image_array = torch.permute(image_array,(1,0,2))
             image_array = torch.unsqueeze(image_array,0)
             mask_array = torch.permute(mask_array,(1,0,2))
+        #If it's 2D slices
         else:
             image_array = torch.permute(image_array,(1,2,0))
             mask_array = torch.permute(torch.squeeze(mask_array),(1,0))
-
+        #If it's task 1
         if self.task1:
             mask_array = self._get_img_label(mask_array)
 
+        #If it is set in the task config to combine the axons and the background labels then do it.
         if self.combine_ax_and_bg:
             threeclass_mask_array = np.where(mask_array==3, 0, mask_array)
             return image_array, threeclass_mask_array
@@ -274,4 +340,10 @@ class BossDBDataset(Dataset):
             return image_array, mask_array
 
     def __len__(self):
+        """
+            Number of slices in the downloaded data can be checked by applying len() method.
+
+        Returns:
+            int: Number of slices
+        """
         return len(self.centroid_list)
