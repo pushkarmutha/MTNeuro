@@ -1,4 +1,4 @@
-# MTNeuro Benchmark Dataset
+# MTNeuro Benchmark
 ![dataset](assets/dataset.png)
 
 ## Links 
@@ -9,9 +9,9 @@
 We introduce a new dataset, annotations, and multiple downstream tasks that provide diverse ways to readout information about brain structure and architecture from the same image. Our multi-task neuroimaging benchmark (MTNeuro) is built on volumetric, micrometer-resolution X-ray microtomography imaging of a large thalamocortical section of mouse brain, encompassing multiple cortical and subcortical regions, that reveals dense reconstructions of the underlying microstructure (i.e., cell bodies, vasculature, and axons). We generated a number of different prediction challenges and evaluated several supervised and self-supervised models for brain-region prediction and pixel-level semantic segmentation of microstructures. Our experiments not only highlight the rich heterogeneity of this dataset, but also provide insights into how self-supervised approaches can be used to learn representations that capture multiple attributes of a single image and perform well on a variety of downstream tasks.
 
 This dataset provides some key features for the neuroinformatics processing community:
-* Three Dimensional Multi-Scale Annotated Dataset: The 3D x-ray microtomography dataset spans multiple brain areas and includes region of interest (ROI) annotations, densely annotated 3D cutouts, and semantic interpretable features.
-* Multi-Level Benchmark Tasks: Benchmark tasks feature both microscopic and macroscopic classification objectives.
-* Evaluation of Model Baselines: Both 2D and 3D training regimes are considered when training supervised and unsupervised models.
+* _Three Dimensional Multi-Scale Annotated Dataset:_ The 3D x-ray microtomography dataset spans multiple brain areas and includes region of interest (ROI) annotations, densely annotated 3D cutouts, and semantic interpretable features.
+* _Multi-Level Benchmark Tasks_: Benchmark tasks feature both microscopic and macroscopic classification objectives.
+* _Evaluation of Model Baselines_: Both 2D and 3D training regimes are considered when training supervised and unsupervised models.
 
 The data are derived from a unique 3D X-ray microtomography dataset covering areas of mouse cortex and thalamus. At 1.17um isotropic resolution for each voxel, both microsctructure (blood vessels, cell bodies, white matter) and macrostructure labels are available. A detailed overview of the dataset can be found [here](https://bossdb.org/project/prasad2020). 
 
