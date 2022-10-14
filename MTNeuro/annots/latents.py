@@ -25,17 +25,17 @@ def get_latents(cut_out_data,encoder_file_path,ssl=1):
     test_loader = DataLoader(dataset_test, batch_size=2048, num_workers=4, shuffle=False,
                                  drop_last=False, pin_memory=True)
 
-
-    encoder = resnet_xray('resnet18').to(torch.device('cuda:0'))
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    encoder = resnet_xray('resnet18').to(device)
     if ssl == 1:
-        ckpt_epoch = BYOLTrainer.load_trained_encoder(encoder, ckpt_path= encoder_file_path, device=torch.device('cuda:0'))
+        ckpt_epoch = BYOLTrainer.load_trained_encoder(encoder, ckpt_path=encoder_file_path, device=device)
     encoder.eval()
     test_targets = []
     test_embeddings = torch.zeros((0, encoder.representation_size), dtype=torch.float32)
     #Latent space
     with torch.no_grad():
         for x, _  in test_loader:
-            x = x.to(torch.device('cuda:0'))
+            x = x.to(device)
             representation = encoder(x)
             test_embeddings = torch.cat((test_embeddings, representation.detach().cpu()), 0)
 
