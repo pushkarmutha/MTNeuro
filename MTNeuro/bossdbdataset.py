@@ -341,6 +341,7 @@ class BossDBDataset(Dataset):
         # Transpose to (c, z, x, y) and add channel dimension
         image_array = np.transpose(image_array, (0, 2, 1))[np.newaxis, :]
         mask_array = np.transpose(mask_array, (0, 2, 1))[np.newaxis, :]
+
         if self.z_size == 1:
             # Squeeze z-axis for shape (c, x, y)
             image_array = np.squeeze(image_array, axis=1)
