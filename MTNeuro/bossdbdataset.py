@@ -346,7 +346,7 @@ class BossDBDataset(Dataset):
             image_array = np.squeeze(image_array, axis=1)
             mask_array = np.squeeze(mask_array, axis=0)
         image = torch.FloatTensor(image_array) / 255.
-        mask = torch.FloatTensor(mask_array)
+        mask = torch.FloatTensor(mask_array.astype(np.int64))
 
         # apply transform
         if self.transform is not None:
