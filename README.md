@@ -1,9 +1,15 @@
 # MTNeuro Benchmark
+ 
+[![](https://img.shields.io/static/v1?label=openreview&message=NeurIPS%20paper&color=red&logo=pagekit)](https://openreview.net/pdf?id=5xuowSQ17vy)
+[![](https://img.shields.io/static/v1?label=colab&message=task1&color=orange&logo=googlecolab)](https://colab.research.google.com/github/MTNeuro/MTNeuro/blob/main/notebooks/task1_getting_started.ipynb)
+[![](https://img.shields.io/static/v1?label=colab&message=task2&color=orange&logo=googlecolab)](https://colab.research.google.com/github/MTNeuro/MTNeuro/blob/main/notebooks/task2_getting_started.ipynb)
+[![](https://img.shields.io/static/v1?label=colab&message=task3&color=orange&logo=googlecolab)](https://colab.research.google.com/github/MTNeuro/MTNeuro/blob/main/notebooks/task3_getting_started.ipynb)
+[![](https://img.shields.io/static/v1?label=Database&message=BossDB&color=blue)](https://bossdb.org/project/prasad2020)
+[![](https://img.shields.io/static/v1?label=Website&message=MTNeuro&color=yellow)](https://mtneuro.github.io/)
+
+
 ![dataset](assets/dataset.png)
 
-## Links 
-* [Website](https://mtneuro.github.io/)
-* [Bossdb Page](https://bossdb.org/project/prasad2020)
 
 ## Overview 
 We introduce a new dataset, annotations, and multiple downstream tasks that provide diverse ways to readout information about brain structure and architecture from the same image. Our multi-task neuroimaging benchmark (MTNeuro) is built on volumetric, micrometer-resolution X-ray microtomography imaging of a large thalamocortical section of mouse brain, encompassing multiple cortical and subcortical regions, that reveals dense reconstructions of the underlying microstructure (i.e., cell bodies, vasculature, and axons). We generated a number of different prediction challenges and evaluated several supervised and self-supervised models for brain-region prediction and pixel-level semantic segmentation of microstructures. Our experiments not only highlight the rich heterogeneity of this dataset, but also provide insights into how self-supervised approaches can be used to learn representations that capture multiple attributes of a single image and perform well on a variety of downstream tasks.
