@@ -10,6 +10,8 @@ import torch
 import matplotlib 
 from os.path import exists
 from requests.exceptions import HTTPError
+from torchvision import transforms
+import warnings
 
 class BossDBDataset(Dataset):
     """
@@ -18,10 +20,11 @@ class BossDBDataset(Dataset):
     def __init__(
         self, 
         task_config: dict,
-        boss_config: dict, 
+        boss_config: dict=None,
         mode="train",
         image_transform=None,
         mask_transform=None,
+        transform=None,
         retries = 5,
         download = True,
         download_path = './'
@@ -34,7 +37,8 @@ class BossDBDataset(Dataset):
             boss_config:        The config file to pass to the array() method from intern library.
             mode:               Can be set to "train", "test" or "val" to indicate which set to make available.
             image_transform:    The transform specified will be applied on the downloaded slices before it is returned.
-            mask_transform:     The transform to apply to the annotations.
+            mask_transform:     (deprecated) The transform to apply to the annotations.
+            transform:          The transform applied to both image and mask.
             retries:            The number of times to retry if the connection attempt to BossDB fails.
             download:           If set to 'True', pre-downlaoded data will be used, else if it's not available, the data will be downloaded & saved.
             download_path:      The location to download the data to / access it from.
@@ -252,8 +256,31 @@ class BossDBDataset(Dataset):
         rad_x = int(task_config["tile_size"][0]/2)
         self.px_radius_y = rad_y
         self.px_radius_x = rad_x
+
+        # Deprecate mask_transform
+        # test if transform = transforms.ToTensor()
+        if isinstance(mask_transform, transforms.ToTensor):
+            mask_transform = None
+        # test if transform = transforms.Compose([transforms.ToTensor(),])
+        elif isinstance(mask_transform, transforms.Compose) and len(mask_transform.transforms) == 1 and isinstance(
+            mask_transform.transforms[0], transforms.ToTensor):
+            mask_transform = None
+        elif mask_transform is not None:
+            raise DeprecationWarning('mask_transform is deprecated, use transform.')
+
+        # image_transform
+        if isinstance(image_transform, transforms.ToTensor):
+            image_transform = None
+        # test if transform = transforms.Compose([transforms.ToTensor(),])
+        elif isinstance(image_transform, transforms.Compose) and len(image_transform.transforms) == 1 and isinstance(
+            image_transform.transforms[0], transforms.ToTensor):
+            image_transform = None
+        elif image_transform is not None:
+            warnings.warn('image_transform does not require transforms.ToTensor().')
+
+        self.transform = transform
         self.image_transform = image_transform
-        self.mask_transform = mask_transform
+
         self.z_size = task_config["volume_z"]
         if 'combine_ax_and_bg' in task_config and bool(task_config['combine_ax_and_bg']):
             self.combine_ax_and_bg = 1
@@ -280,9 +307,7 @@ class BossDBDataset(Dataset):
             img_label = 2
         elif roi_label == 5 or roi_label == 6 or roi_label == 7:
             img_label = 3
-        label = torch.LongTensor(0)
-        label = img_label
-        return label
+        return img_label
 
     def __getitem__(self, key):
         """
@@ -313,31 +338,39 @@ class BossDBDataset(Dataset):
             ]
        
         #If some transform has been specified
-        if self.image_transform:
-            image_array = self.image_transform(image_array)
-        #If some mask transform has been specified
-        if self.mask_transform:
-            mask_array = self.mask_transform(mask_array.astype('int64'))
-            mask_array = torch.squeeze(mask_array)
-        #If it's 3D volumes instead of slices
-        if self.z_size>1:
-            image_array = torch.permute(image_array,(1,0,2))
-            image_array = torch.unsqueeze(image_array,0)
-            mask_array = torch.permute(mask_array,(1,0,2))
-        #If it's 2D slices
-        else:
-            image_array = torch.permute(image_array,(1,2,0))
-            mask_array = torch.permute(torch.squeeze(mask_array),(1,0))
-        #If it's task 1
-        if self.task1:
-            mask_array = self._get_img_label(mask_array)
+        # Transpose to (c, z, x, y) and add channel dimension
+        image_array = np.transpose(image_array, (0, 2, 1))[np.newaxis, :]
+        mask_array = np.transpose(mask_array, (0, 2, 1))[np.newaxis, :]
 
-        #If it is set in the task config to combine the axons and the background labels then do it.
+        if self.z_size == 1:
+            # Squeeze z-axis for shape (c, x, y)
+            image_array = np.squeeze(image_array, axis=1)
+            mask_array = np.squeeze(mask_array, axis=0)
+        image = torch.FloatTensor(image_array) / 255.
+        mask = torch.FloatTensor(mask_array.astype(np.int64))
+
+        # apply transform
+        if self.transform is not None:
+            image, mask = self.transform(image, mask)
+
+        # apply image_transform
+        if self.image_transform is not None:
+            image = self.image_transform(image)
+
+        # convert mask to long
+        # todo make it such that by default  of type float
+        mask = mask.long().squeeze(0)
+
+        if self.task1:
+            y = self._get_img_label(mask)
+            return image, y
+
+        # If it is set in the task config to combine the axons and the background labels then do it.
         if self.combine_ax_and_bg:
-            threeclass_mask_array = np.where(mask_array==3, 0, mask_array)
-            return image_array, threeclass_mask_array
-        else:
-            return image_array, mask_array
+            # map class 3 to 0
+            mask = torch.LongTensor([0, 1, 2, 0])[mask]
+
+        return image, mask
 
     def __len__(self):
         """
