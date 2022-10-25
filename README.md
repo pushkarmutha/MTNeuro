@@ -78,6 +78,6 @@ This software is available under the [MIT License](https://opensource.org/licens
 The original X-ray Microtomography image dataset is licensed under Creative Commons Attribution 4.0 International (CC BY 4.0). 
 
 ## Citation
-If you find this project useful in your research, please cite the following paper!
-
+If you find this project useful in your research, please cite the following papers!
+* Quesada, J., Sathidevi, L., Liu, R., Ahad, N., Jackson, J.M., Azabou, M., ... & Dyer, E. L. (2022). MTNeuro: A Benchmark for Evaluating Representations of Brain Structure Across Multiple Levels of Abstraction. Thirty-sixth Conference on Neural Information Processing Systems Datasets and Benchmarks Track.
 * Prasad, J. A., Balwani, A. H., Johnson, E. C., Miano, J. D., Sampathkumar, V., De Andrade, V., ... & Dyer, E. L. (2020). A three-dimensional thalamocortical dataset for characterizing brain heterogeneity. Scientific Data, 7(1), 1-7.
