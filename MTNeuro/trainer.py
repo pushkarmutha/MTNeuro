@@ -48,7 +48,7 @@ class EarlyStopping:
         if self.verbose:
             self.trace_func(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
         torch.save(model.state_dict(), self.path)
-        self.val_loss_min = val_loss 
+        self.val_loss_min = val_loss
 
 class Trainer:
     def __init__(self,
@@ -100,13 +100,11 @@ class Trainer:
             if self.validation_DataLoader is not None:
                 self._validate()
             
-            early_stopping(self.validation_loss, self.model)
+            early_stopping(self.validation_loss[i], self.model)
             if early_stopping.early_stop:
               print("Early stopping")
-            break
+              break
         
-            # load the last checkpoint with the best model
-            model.load_state_dict(torch.load('checkpoint.pt'))
 
             """Learning rate scheduler block"""
             if self.lr_scheduler is not None:
@@ -114,6 +112,7 @@ class Trainer:
                     self.lr_scheduler.batch(self.validation_loss[i])  # learning rate scheduler step with validation loss
                 else:
                     self.lr_scheduler.batch()  # learning rate scheduler step
+        self.model.load_state_dict(torch.load('checkpoint.pt'))
         return self.training_loss, self.validation_loss, self.learning_rate
 
     def _train(self):
