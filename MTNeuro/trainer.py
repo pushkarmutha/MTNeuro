@@ -88,7 +88,7 @@ class Trainer:
 
         progressbar = trange(self.epochs, desc='Progress')
 
-        early_stopping = EarlyStopping(patience=5, verbose=True)
+        early_stopping = EarlyStopping(patience=20, verbose=True)
         for i in progressbar:
             """Epoch counter"""
             self.epoch += 1  # epoch counter
