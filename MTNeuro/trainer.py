@@ -103,7 +103,7 @@ class Trainer:
             early_stopping(self.validation_loss[i], self.model)
             if early_stopping.early_stop:
               print("Early stopping")
-              break
+              #break
         
 
             """Learning rate scheduler block"""
